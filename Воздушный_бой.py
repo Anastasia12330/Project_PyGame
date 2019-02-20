@@ -169,6 +169,31 @@ def create_particles(position):
     for _ in range(particle_count):
         Particle(position, random.choice(numbers), random.choice(numbers))
 
+# Преждевременный выход из игры ,«аварийное завершение»
+def terminate():
+    pygame.quit()
+    sys.exit()
+
+# ЗАСТАВКА
+def begin_screen():
+    fon = pygame.transform.scale(load_image('vertolet.jpg'), (width, height))
+    screen.blit(fon, (0, 0))
+    font = pygame.font.Font(None, 60)
+    text = font.render("ВОЗДУШНЫЙ БОЙ", 1, (100, 255, 100))
+    text_x = width // 2 - text.get_width() // 2
+    text_y = (height // 6) * 5 - text.get_height() // 2
+    screen.blit(text, (text_x, text_y))
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                return  # начинаем игру
+        pygame.display.flip()
+        clock.tick(50)
+
+
 # создадим группу, содержащую все спрайты
 all_sprites = pygame.sprite.Group()
 all_dragon = pygame.sprite.Group()
@@ -194,53 +219,60 @@ all_Particle = pygame.sprite.Group()
 
 fon = pygame.transform.scale(load_image("Mountain.jpg"), (width, height))
 
-running = True
+running = running_begin = True
+running_game = False
+
 while running:
-    screen.blit(fon, (0, 0))
+    if running_begin:
+        begin_screen()
+        running_begin = False
+        running_game = True
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+    while running_game:
+        screen.blit(fon, (0, 0))
 
-        if event.type == pygame.KEYDOWN:  # выстрел
-            if event.key == pygame.K_SPACE:
-                Bullet(all_bullets, (helicopter.rect.x + 150, helicopter.rect.y + 50))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
 
-        if event.type == pygame.USEREVENT:  # появление кораблей ПРОТИВНИКА
-            for i in range(1):
-                SpaceShip(all_SpaceShip)
-            for j in all_SpaceShip:  # выстрел кораблей ПРОТИВНИКА
-                Bullet_Enemy(all_Bullet_Enemy, (j.rect.x, j.rect.y + 15))
+            if event.type == pygame.KEYDOWN:  # выстрел
+                if event.key == pygame.K_SPACE:
+                    Bullet(all_bullets, (helicopter.rect.x + 150, helicopter.rect.y + 50))
 
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT]:
-        if helicopter.rect.x >= 0:
-            helicopter.rect.x -= 6
-    elif keys[pygame.K_RIGHT]:
-        if helicopter.rect.x <= width - 180:
-            helicopter.rect.x += 6
-    elif keys[pygame.K_UP]:
-        if helicopter.rect.y >= 30:
-            helicopter.rect.y -= 6
-    elif keys[pygame.K_DOWN]:
-        if helicopter.rect.y <= height - 70:
-            helicopter.rect.y += 6
+            if event.type == pygame.USEREVENT:  # появление кораблей ПРОТИВНИКА
+                for i in range(1):
+                    SpaceShip(all_SpaceShip)
+                for j in all_SpaceShip:  # выстрел кораблей ПРОТИВНИКА
+                    Bullet_Enemy(all_Bullet_Enemy, (j.rect.x, j.rect.y + 15))
 
-    all_sprites.update()
-    all_sprites.draw(screen)
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            if helicopter.rect.x >= 0:
+                helicopter.rect.x -= 6
+        elif keys[pygame.K_RIGHT]:
+            if helicopter.rect.x <= width - 180:
+                helicopter.rect.x += 6
+        elif keys[pygame.K_UP]:
+            if helicopter.rect.y >= 30:
+                helicopter.rect.y -= 6
+        elif keys[pygame.K_DOWN]:
+            if helicopter.rect.y <= height - 70:
+                helicopter.rect.y += 6
 
-    all_bullets.draw(screen)
-    all_bullets.update()
+        all_sprites.update()
+        all_sprites.draw(screen)
 
-    all_Bullet_Enemy.draw(screen)
-    all_Bullet_Enemy.update()
+        all_bullets.draw(screen)
+        all_bullets.update()
 
-    all_SpaceShip.draw(screen)
-    all_SpaceShip.update()
+        all_Bullet_Enemy.draw(screen)
+        all_Bullet_Enemy.update()
 
-    all_Particle.draw(screen)
-    all_Particle.update()
+        all_SpaceShip.draw(screen)
+        all_SpaceShip.update()
 
+        all_Particle.draw(screen)
+        all_Particle.update()
 
-    pygame.display.flip()
-    clock.tick(20)
+        pygame.display.flip()
+        clock.tick(20)
