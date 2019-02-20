@@ -7,8 +7,9 @@ clock = pygame.time.Clock()
 
 pygame.time.set_timer(pygame.USEREVENT, 3000)
 
+screen_rect = (0, 0, width, height)
 
-def load_image(name, color_key=-1):
+def load_image(name, color_key = -1):
     fullname = os.path.join('data', name)
     try:
         image = pygame.image.load(fullname)
@@ -47,7 +48,6 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.cur_frame = (self.cur_frame + 1) % len(self.frames)
         self.image = self.frames[self.cur_frame]
 
-
 # создаем класс космических кораблей ПРОТИВНИКА
 class SpaceShip(pygame.sprite.Sprite):
     image = load_image("fw190a8.jpg", -1)
@@ -68,6 +68,8 @@ class SpaceShip(pygame.sprite.Sprite):
         all_SpaceShip.add(self)
 
     def update(self):
+        if pygame.sprite.spritecollideany(self, all_sprites):
+            all_SpaceShip.remove(self)
         if self.rect.x > 0:
             self.rect.x -= self.speed
         # убиваем, если корабль ушел за экран
@@ -75,9 +77,39 @@ class SpaceShip(pygame.sprite.Sprite):
             self.kill()
 
 
+# создаем класс пуль
+class Bullet(pygame.sprite.Sprite):
+    image = load_image("bullet.jpg", -1)
+    image = pygame.transform.scale(image, (30, 20))
+
+    def __init__(self, group, pos):
+        super().__init__(group)
+        self.image = Bullet.image
+        self.rect = self.image.get_rect()
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
+        self.vy = 0
+        self.speed = 10
+
+    def update(self):
+        self.rect = self.rect.move(self.speed, self.vy)
+
+        # если промах, то удаляется из группы
+        if not self.rect.colliderect(screen_rect):
+            self.kill()
+
+        # если попадает в корабль, то удаляется из группы
+        if pygame.sprite.spritecollide(self, all_SpaceShip, True):
+            all_bullets.remove(self)
+
+
 # создадим группу, содержащую все спрайты
 all_sprites = pygame.sprite.Group()
 all_dragon = pygame.sprite.Group()
+
+# создадим группу, содержащую все шарики(пули)
+all_bullets = pygame.sprite.Group()
 
 helicopter = AnimatedSprite(load_image("helicopter.png", -1), 1, 4, 50, 150)
 all_sprites = pygame.sprite.Group(helicopter)
@@ -89,6 +121,7 @@ SpaceShip_image = load_image("fw190a8.jpg", -1)
 SpaceShip_image = pygame.transform.scale(SpaceShip_image, (100, 50))
 x1, y1 = SpaceShip_image.get_rect().size
 
+
 fon = pygame.transform.scale(load_image("Mountain.jpg"), (width, height))
 
 running = True
@@ -99,15 +132,37 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
+        if event.type == pygame.KEYDOWN:  # выстрел
+            if event.key == pygame.K_SPACE:
+                Bullet(all_bullets, (helicopter.rect.x + 150, helicopter.rect.y + 50))
+
         if event.type == pygame.USEREVENT:  # появление кораблей ПРОТИВНИКА
             for i in range(1):
                 SpaceShip(all_SpaceShip)
 
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT]:
+        if helicopter.rect.x >= 0:
+            helicopter.rect.x -= 6
+    elif keys[pygame.K_RIGHT]:
+        if helicopter.rect.x <= width - 180:
+            helicopter.rect.x += 6
+    elif keys[pygame.K_UP]:
+        if helicopter.rect.y >= 30:
+            helicopter.rect.y -= 6
+    elif keys[pygame.K_DOWN]:
+        if helicopter.rect.y <= height - 70:
+            helicopter.rect.y += 6
+
     all_sprites.update()
     all_sprites.draw(screen)
 
+    all_bullets.draw(screen)
+    all_bullets.update()
+
     all_SpaceShip.draw(screen)
     all_SpaceShip.update()
+
 
     pygame.display.flip()
     clock.tick(20)
