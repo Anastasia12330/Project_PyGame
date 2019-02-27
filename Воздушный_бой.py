@@ -12,7 +12,7 @@ pygame.time.set_timer(pygame.USEREVENT, 3000)
 
 screen_rect = (0, 0, width, height)
 
-TEXT_MENU = ['Легкая игра', 'Сложная игра', 'Инструкции', 'РЕКОРД', 'ВЫХОД', 'Продолжить']
+TEXT_MENU = ['Легкая игра', 'Сложная игра', 'Инструкции', 'РЕКОРД', 'ВЫХОД']
 DURATION = 60  # ВРЕМЯ игры
 SCORE = 0
 LIFE = 100
@@ -166,7 +166,7 @@ def create_particles(position):
         Particle(position, random.choice(numbers), random.choice(numbers))
 
 
-# создаем класс космических кораблей ПРОТИВНИКА
+# создаем класс самолетов ПРОТИВНИКА
 class SpaceShip(pygame.sprite.Sprite):
     image = load_image("fw190a8.jpg", -1)
     image = pygame.transform.scale(image, (100, 50))
@@ -290,7 +290,7 @@ def menu_screen():
 
 # ИНСТРУКЦИЯ, Правила игры
 def rules_screen():
-    intro_text = ["                       ПРАВИЛИ ИГРЫ", "",
+    intro_text = ["                       ПРАВИЛА ИГРЫ", "",
                   "Чтобы победить, Вы должны за 60 секунд сбить как можно больше",
                   "самолетов  противника, получая при этом очки. Уклоняйтесь от пуль противника",
                   "",
@@ -405,20 +405,21 @@ def gameover_screen():
 
 # создаем функцию новой игры
 def new_game():
-    global TIME, TIME_END, TIME_BEGIN, SCORE
+    global TIME, TIME_END, TIME_BEGIN, SCORE, LIFE
 
-    for group in ALL_GRUOPS:
+    for group in ALL_GROUPS:
         for enemy in group:
             enemy.kill()
     TIME = TIME_END = TIME_BEGIN = DURATION
     SCORE = 0
+    LIFE = 100
     helicopter.rect.x, helicopter.rect.y = 10, height // 2 - 50
 
 
 # создадим группу, содержащую все спрайты вертолета
 all_helicopters = pygame.sprite.Group()
 
-# создадим группу, содержащую все шарики(пули)
+# создадим группу, содержащую все пули
 all_bullets = pygame.sprite.Group()
 
 # создадим группу, содержащую все пули ПРОТИВНИКА
@@ -430,13 +431,11 @@ all_Particle = pygame.sprite.Group()
 # создадим группу клавиш меню
 all_Buttons = pygame.sprite.Group()
 
-helicopter1 = AnimatedSprite(pygame.transform.scale(load_image("helicopter.png", -1), (80, 50)), 1, 4, 50, 150)
-
 # создадим группу, содержащую все корабли ПРОТИВНИКА
 all_SpaceShip = pygame.sprite.Group()
 
 # создадим список всех групп
-ALL_GRUOPS = [all_bullets, all_Bullet_Enemy, all_Particle, all_SpaceShip]
+ALL_GROUPS = [all_bullets, all_Bullet_Enemy, all_Particle, all_SpaceShip]
 
 SpaceShip_image = load_image("fw190a8.jpg", -1)
 SpaceShip_image = pygame.transform.scale(SpaceShip_image, (100, 50))
@@ -445,7 +444,7 @@ x1, y1 = SpaceShip_image.get_rect().size
 helicopter = AnimatedSprite(load_image("helicopter.png", -1), 1, 4, 10, height // 2 - 50)
 all_helicopters = pygame.sprite.Group(helicopter)
 
-# создадим подсчет количества ЖИЗНИ , счет сбитых короблей и времени
+# создадим подсчет количества ЖИЗНИ , счет сбитых самолетов и времени
 SCORE_font = pygame.font.Font(None, 30)
 LIFE_font = pygame.font.Font(None, 30)
 TIME_font = pygame.font.Font(None, 30)
@@ -465,28 +464,30 @@ x_image_game_over, y_image_game_over = image_game_over.get_rect().size
 gameover = GameOver(width, 'gameover.jpg')
 
 running = running_begin = True
-running_rules = running_menu = running_game = running_records = running_end = easy_game = False
+running_rules = running_menu = running_game = running_records = running_end = hard_game = False
 
 while running:
     pygame.mixer.music.pause()
     # ЗАСТАВКА
     if running_begin:
+        # pygame.mixer.music.pause()
         begin_screen()
         running_begin = False
         running_menu = True
 
     # МЕНЮ
     if running_menu:
+        # pygame.mixer.music.pause()
         running_menu = False
         t_f = menu_screen()
         if t_f == 'Легкая игра':
             running_game = True
-            easy_game = False
+            hard_game = False
             new_game()
             start_time = time.clock()
         elif t_f == 'Сложная игра':
             running_game = True
-            easy_game = True
+            hard_game = True
             new_game()
             start_time = time.clock()
         elif t_f == 'Инструкции':
@@ -503,12 +504,14 @@ while running:
 
     # Правила
     if running_rules:
+        # pygame.mixer.music.pause()
         rules_screen()
         running_rules = False
         running_menu = True
 
     # РЕКОРДЫ
     if running_records:
+        # pygame.mixer.music.pause()
         records_screen()
         running_records = False
         running_menu = True
@@ -558,7 +561,7 @@ while running:
             if event.type == pygame.USEREVENT:  # появление кораблей ПРОТИВНИКА
                 for i in range(N):
                     SpaceShip(all_SpaceShip)
-                if easy_game:  # сложный уровень противник начинает стрелять
+                if hard_game:  # сложный уровень противник начинает стрелять
                     for j in all_SpaceShip:  # выстрел кораблей ПРОТИВНИКА
                         Bullet_Enemy(all_Bullet_Enemy, (j.rect.x, j.rect.y + 15))
 
