@@ -12,11 +12,10 @@ pygame.time.set_timer(pygame.USEREVENT, 3000)
 
 screen_rect = (0, 0, width, height)
 
-TEXT_MENU = ['Легкая игра', 'Сложная игра', 'Инструкции', 'РЕКОРД', 'ВЫХОД']
+TEXT_MENU = ['Легкая игра', 'Сложная игра', 'Инструкции', 'РЕКОРД', 'ВЫХОД', 'Продолжить']
 DURATION = 60  # ВРЕМЯ игры
 SCORE = 0
 LIFE = 100
-MENU = 'Меню'
 N = 1
 N_MENU = 5
 TIME = TIME_END = TIME_BEGIN = DURATION  # ВРЕМЯ игры
@@ -87,13 +86,12 @@ class Bullet(pygame.sprite.Sprite):
             self.kill()
 
         # если попадает в корабль, то удаляется из группы
-        if pygame.sprite.spritecollide(self, all_SpaceShip, True):
+        elif pygame.sprite.spritecollide(self, all_SpaceShip, True):
             all_bullets.remove(self)
             create_particles((self.rect.x, self.rect.y))
             SCORE += 1
-            pass
 
-        if pygame.sprite.spritecollide(self, all_Bullet_Enemy, True):
+        elif pygame.sprite.spritecollide(self, all_Bullet_Enemy, True):
             self.kill()
             create_particles((self.rect.x, self.rect.y))
 
@@ -120,10 +118,6 @@ class Bullet_Enemy(pygame.sprite.Sprite):
         # если промах, то удаляется из группы
         if not self.rect.colliderect(screen_rect):
             self.kill()
-
-        elif pygame.sprite.spritecollide(self, all_bullets, True):
-            self.kill()
-            create_particles((self.rect.x, self.rect.y))
 
         elif pygame.sprite.spritecollideany(self, all_helicopters):
             all_Bullet_Enemy.remove(self)
@@ -161,7 +155,7 @@ def create_particles(position):
     # количество создаваемых частиц
     particle_count = 20
     # возможные скорости
-    numbers = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6]  # range(-5, 6)
+    numbers = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6]
     for _ in range(particle_count):
         Particle(position, random.choice(numbers), random.choice(numbers))
 
@@ -193,14 +187,10 @@ class SpaceShip(pygame.sprite.Sprite):
             all_SpaceShip.remove(self)
             create_particles((self.rect.x, self.rect.y))
             LIFE = 0
-        # убиваем, если корабль сталкивается с пулями
-        elif pygame.sprite.spritecollideany(self, all_bullets):
-            self.kill()
-            create_particles((self.rect.x, self.rect.y))
-        elif self.rect.x > 0:
+        elif self.rect.x > - x1:
             self.rect.x -= self.speed
         # убиваем, если корабль ушел за экран
-        elif self.rect.x < 0:
+        elif not self.rect.colliderect(screen_rect):
             self.kill()
 
 
@@ -242,7 +232,7 @@ class Button(pygame.sprite.Sprite):
         self.rect = pygame.Rect(x, y, 2 * radius, 2 * radius)
         self.text = TEXT_MENU[i]
 
-    def get_event(self, event, bool):
+    def get_event(self, event, bool=False):
         global MENU
         if self.rect.collidepoint(event.pos):
             pygame.draw.circle(self.image, pygame.Color("green"),
@@ -274,7 +264,7 @@ def menu_screen():
                 terminate()
             elif event.type == pygame.MOUSEMOTION:
                 for enemy in all_Buttons:
-                    enemy.get_event(event, False)
+                    enemy.get_event(event)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 for enemy in all_Buttons:
                     enemy.get_event(event, True)
@@ -332,14 +322,12 @@ def records_screen():
     global SCORE
 
     filename = os.path.join('data', 'records.txt')
-    with open(filename, 'r') as File:
+    with open(filename, 'r+') as File:
         data = File.readline().strip()
-        if int(data) < SCORE:
-            with open(filename, 'w') as File:
-                File.write(str(SCORE))
-    File = open(filename, 'r')
-    data = File.readline().strip()
-    File.close()
+        if data == '' or int(data) < SCORE:
+            data = str(SCORE)
+            File.seek(0)
+            File.write(data)
 
     fon = pygame.transform.scale(load_image('Winner_Banner.jpg'), (width, height))
     screen.blit(fon, (0, 0))
@@ -373,12 +361,11 @@ class GameOver(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = 0
-        self.dx = 2
+        self.dx = 4
 
     def update(self):
         self.rect.x -= self.dx
-        # self.rect.y += self.dx
-        if self.rect.x == width - x_image_game_over:  # and self.rect.y == height - y_image_game_over:
+        if self.rect.x == width - x_image_game_over:
             self.dx = 0
 
 
@@ -389,6 +376,7 @@ def gameover_screen():
     pause = "                                                                       "
     text = font.render("SCORE : " + str(SCORE) + pause + "author : Stepina Anastasiia", 1, (255, 255, 255))
     text_y = (height // 6) * 5 - text.get_height() // 2
+    gameover = GameOver(width, 'gameover.jpg')
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -461,7 +449,6 @@ pygame.mixer.music.play(-1)
 image_game_over = load_image('gameover.jpg')
 image_game_over = pygame.transform.scale(image_game_over, (width, height))
 x_image_game_over, y_image_game_over = image_game_over.get_rect().size
-gameover = GameOver(width, 'gameover.jpg')
 
 running = running_begin = True
 running_rules = running_menu = running_game = running_records = running_end = hard_game = False
@@ -470,14 +457,12 @@ while running:
     pygame.mixer.music.pause()
     # ЗАСТАВКА
     if running_begin:
-        # pygame.mixer.music.pause()
         begin_screen()
         running_begin = False
         running_menu = True
 
     # МЕНЮ
     if running_menu:
-        # pygame.mixer.music.pause()
         running_menu = False
         t_f = menu_screen()
         if t_f == 'Легкая игра':
@@ -504,14 +489,12 @@ while running:
 
     # Правила
     if running_rules:
-        # pygame.mixer.music.pause()
         rules_screen()
         running_rules = False
         running_menu = True
 
     # РЕКОРДЫ
     if running_records:
-        # pygame.mixer.music.pause()
         records_screen()
         running_records = False
         running_menu = True
@@ -521,6 +504,10 @@ while running:
     if running_end:
         gameover_screen()
         LIFE = 100
+        N_MENU = 5
+        for enemy in all_Buttons:
+            if enemy.text == 'Продолжить':
+                enemy.kill()
         running_end = False
         running_menu = True
 
@@ -532,6 +519,7 @@ while running:
         # снимаем музыку с паузы
         pygame.mixer.music.unpause()
         screen.blit(fon, (0, 0))
+
         # отрисовка информационного табло
         info_string.fill((45, 80, 45))
         screen.blit(info_string, (0, 0))
@@ -551,8 +539,7 @@ while running:
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running_game = False
-                running = False
+                terminate()
 
             elif event.type == pygame.KEYDOWN:  # выстрел
                 if event.key == pygame.K_SPACE:
@@ -569,6 +556,7 @@ while running:
                 if event.key == pygame.K_ESCAPE:
                     pygame.mouse.set_visible(True)
                     TIME = TIME - int(time.clock() - start_time)
+                    N_MENU = 6
                     running_menu = True
                     running_game = False
 
